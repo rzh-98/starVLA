@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "用法：$0 <framework> <base_vlm>" >&2
+  exit 2
+fi
+
+FRAMEWORK_NAME="$1"
+BASE_VLM="$2"
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+
+cd "${REPO_ROOT}"
+
+SEED="${SEED:-42}"
+CONFIG_YAML="${CONFIG_YAML:-${SCRIPT_DIR}/config_base.yaml}"
+LIBERO_DATA_ROOT="${LIBERO_DATA_ROOT:-playground/Datasets/LEROBOT_LIBERO_DATA}"
+DATA_MIX="${DATA_MIX:-libero_all}"
+RUN_ROOT_DIR="${RUN_ROOT_DIR:-./playground/Checkpoints/starvla_alpha_libero_5fw}"
+WANDB_PROJECT="${WANDB_PROJECT:-starVLA}"
+MAX_TRAIN_STEPS="${MAX_TRAIN_STEPS:-80000}"
+SAVE_INTERVAL="${SAVE_INTERVAL:-10000}"
+LOGGING_FREQUENCY="${LOGGING_FREQUENCY:-100}"
+EVAL_INTERVAL="${EVAL_INTERVAL:-100}"
+NUM_PROCESSES="${NUM_PROCESSES:-}"
+RESUME="${RESUME:-0}"
+OVERWRITE="${OVERWRITE:-0}"
+
+export STARVLA_USE_SWANLAB="${STARVLA_USE_SWANLAB:-1}"
+export SWANLAB_MODE="${SWANLAB_MODE:-online}"
+
+SHORT_COMMIT="${SHORT_COMMIT:-$(git rev-parse --short HEAD)}"
+RUN_ID="${RUN_ID:-alpha_libero_${FRAMEWORK_NAME}_${SHORT_COMMIT}_seed${SEED}}"
+OUTPUT_DIR="${RUN_ROOT_DIR%/}/${RUN_ID}"
+
+if [[ ! -e "${BASE_VLM}" ]]; then
+  echo "base VLM 路径不存在：${BASE_VLM}" >&2
+  exit 1
+fi
+
+if [[ ! -d "${LIBERO_DATA_ROOT}" ]]; then
+  echo "LIBERO 数据根目录不存在：${LIBERO_DATA_ROOT}" >&2
+  exit 1
+fi
+
+if [[ -z "${NUM_PROCESSES}" ]]; then
+  NUM_PROCESSES="$("${PYTHON_BIN}" - <<'PY'
+import torch
+
+print(torch.cuda.device_count())
+PY
+)"
+fi
+
+if [[ "${NUM_PROCESSES}" -lt 1 ]]; then
+  echo "torch.cuda.device_count() 没有发现可见 CUDA 设备。" >&2
+  echo "请在启动训练前设置 CUDA_VISIBLE_DEVICES 或 NUM_PROCESSES。" >&2
+  exit 1
+fi
+
+if [[ -e "${OUTPUT_DIR}" ]]; then
+  if [[ "${OVERWRITE}" == "1" ]]; then
+    rm -rf -- "${OUTPUT_DIR}"
+  elif [[ "${RESUME}" == "1" ]]; then
+    echo "复用已有输出目录继续训练：${OUTPUT_DIR}"
+  else
+    echo "输出目录已存在：${OUTPUT_DIR}" >&2
+    echo "如需继续训练请设置 RESUME=1；如需覆盖请设置 OVERWRITE=1。" >&2
+    exit 1
+  fi
+fi
+
+mkdir -p "${OUTPUT_DIR}"
+
+{
+  echo "UTC时间：$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "仓库根目录：${REPO_ROOT}"
+  echo "当前提交：$(git rev-parse HEAD)"
+  echo "版本描述：$(git describe --tags --always --dirty)"
+  echo "当前分支：$(git branch --show-current)"
+  echo
+  echo "[远端]"
+  git remote -v
+  echo
+  echo "[状态]"
+  git status --short --branch
+} > "${OUTPUT_DIR}/git_info.txt"
+
+WANDB_ARGS=(--wandb_project "${WANDB_PROJECT}")
+if [[ -n "${WANDB_ENTITY:-}" ]]; then
+  WANDB_ARGS+=(--wandb_entity "${WANDB_ENTITY}")
+fi
+
+RESUME_ARGS=()
+if [[ "${RESUME}" == "1" ]]; then
+  RESUME_ARGS+=(--trainer.is_resume true)
+fi
+
+CONFIG_DOTLIST=(
+  "framework.name=${FRAMEWORK_NAME}"
+  "framework.qwenvl.base_vlm=${BASE_VLM}"
+  "datasets.vla_data.data_root_dir=${LIBERO_DATA_ROOT}"
+  "datasets.vla_data.data_mix=${DATA_MIX}"
+  "datasets.vla_data.per_device_batch_size=16"
+  "trainer.max_train_steps=${MAX_TRAIN_STEPS}"
+  "trainer.save_interval=${SAVE_INTERVAL}"
+  "trainer.logging_frequency=${LOGGING_FREQUENCY}"
+  "trainer.eval_interval=${EVAL_INTERVAL}"
+  "run_root_dir=${RUN_ROOT_DIR}"
+  "run_id=${RUN_ID}"
+  "seed=${SEED}"
+  "wandb_project=${WANDB_PROJECT}"
+)
+
+if [[ -n "${WANDB_ENTITY:-}" ]]; then
+  CONFIG_DOTLIST+=("wandb_entity=${WANDB_ENTITY}")
+fi
+
+if [[ "${RESUME}" == "1" ]]; then
+  CONFIG_DOTLIST+=("trainer.is_resume=true")
+fi
+
+COMMAND=(
+  "${PYTHON_BIN}" -m accelerate.commands.launch
+  --config_file starVLA/config/deepseeds/deepspeed_zero2.yaml
+  --num_processes "${NUM_PROCESSES}"
+  starVLA/training/train_starvla.py
+  --config_yaml "${CONFIG_YAML}"
+  --framework.name "${FRAMEWORK_NAME}"
+  --framework.qwenvl.base_vlm "${BASE_VLM}"
+  --datasets.vla_data.data_root_dir "${LIBERO_DATA_ROOT}"
+  --datasets.vla_data.data_mix "${DATA_MIX}"
+  --datasets.vla_data.per_device_batch_size 16
+  --trainer.max_train_steps "${MAX_TRAIN_STEPS}"
+  --trainer.save_interval "${SAVE_INTERVAL}"
+  --trainer.logging_frequency "${LOGGING_FREQUENCY}"
+  --trainer.eval_interval "${EVAL_INTERVAL}"
+  --run_root_dir "${RUN_ROOT_DIR}"
+  --run_id "${RUN_ID}"
+  --seed "${SEED}"
+  "${WANDB_ARGS[@]}"
+  "${RESUME_ARGS[@]}"
+)
+
+"${PYTHON_BIN}" - "${CONFIG_YAML}" "${OUTPUT_DIR}/config.full.yaml" "${CONFIG_DOTLIST[@]}" <<'PY'
+import sys
+
+from omegaconf import OmegaConf
+
+from starVLA.model.framework.share_tools import apply_config_compat
+
+config_yaml = sys.argv[1]
+output_yaml = sys.argv[2]
+dotlist = sys.argv[3:]
+
+cfg = OmegaConf.load(config_yaml)
+cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(dotlist))
+cfg = apply_config_compat(cfg)
+cfg.config_yaml = config_yaml
+OmegaConf.save(cfg, output_yaml, resolve=True)
+PY
+
+{
+  echo "#!/usr/bin/env bash"
+  printf 'cd %q\n' "${REPO_ROOT}"
+  printf 'export STARVLA_USE_SWANLAB=%q\n' "${STARVLA_USE_SWANLAB}"
+  printf 'export SWANLAB_MODE=%q\n' "${SWANLAB_MODE}"
+  printf 'export CUDA_VISIBLE_DEVICES=%q\n' "${CUDA_VISIBLE_DEVICES:-}"
+  printf 'export NUM_PROCESSES=%q\n' "${NUM_PROCESSES}"
+  printf '%q ' "${COMMAND[@]}"
+  echo
+} > "${OUTPUT_DIR}/launch_command.sh"
+chmod +x "${OUTPUT_DIR}/launch_command.sh"
+
+TEE_ARGS=()
+if [[ "${RESUME}" == "1" ]]; then
+  TEE_ARGS=(-a)
+fi
+
+echo "启动框架 ${FRAMEWORK_NAME}，run_id=${RUN_ID}"
+"${COMMAND[@]}" 2>&1 | tee "${TEE_ARGS[@]}" "${OUTPUT_DIR}/train.log"

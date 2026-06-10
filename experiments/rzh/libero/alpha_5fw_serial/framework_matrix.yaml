@@ -1,0 +1,10 @@
+- framework: QwenOFT
+  base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
+- framework: QwenFast
+  base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
+- framework: QwenPI
+  base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct
+- framework: QwenGR00T
+  base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct
+- framework: QwenAdapter
+  base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
