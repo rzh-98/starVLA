@@ -41,6 +41,7 @@ EVAL_INTERVAL="${EVAL_INTERVAL:-100}"
 NUM_PROCESSES="${NUM_PROCESSES:-}"
 RESUME="${RESUME:-0}"
 OVERWRITE="${OVERWRITE:-0}"
+FRAMEWORK_OVERRIDES_JSON="${FRAMEWORK_OVERRIDES_JSON:-{}}"
 
 export STARVLA_USE_SWANLAB="${STARVLA_USE_SWANLAB:-1}"
 export SWANLAB_MODE="${SWANLAB_MODE:-online}"
@@ -144,6 +145,29 @@ if [[ "${RESUME}" == "1" ]]; then
   CONFIG_DOTLIST+=("trainer.is_resume=true")
 fi
 
+mapfile -t OVERRIDE_ROWS < <("${PYTHON_BIN}" - "${FRAMEWORK_OVERRIDES_JSON}" <<'PY'
+import json
+import sys
+
+overrides = json.loads(sys.argv[1])
+for key, value in overrides.items():
+    if isinstance(value, bool):
+        value = "true" if value else "false"
+    elif value is None:
+        value = "null"
+    else:
+        value = str(value)
+    print(f"{key}\t{value}")
+PY
+)
+
+EXTRA_OVERRIDE_ARGS=()
+for row in "${OVERRIDE_ROWS[@]}"; do
+  IFS=$'\t' read -r key value <<< "${row}"
+  CONFIG_DOTLIST+=("${key}=${value}")
+  EXTRA_OVERRIDE_ARGS+=(--"${key}" "${value}")
+done
+
 COMMAND=(
   "${PYTHON_BIN}" -m accelerate.commands.launch
   --config_file starVLA/config/deepseeds/deepspeed_zero2.yaml
@@ -170,6 +194,7 @@ COMMAND=(
   --seed "${SEED}"
   "${WANDB_ARGS[@]}"
   "${RESUME_ARGS[@]}"
+  "${EXTRA_OVERRIDE_ARGS[@]}"
 )
 
 "${PYTHON_BIN}" - "${CONFIG_YAML}" "${OUTPUT_DIR}/config.full.yaml" "${CONFIG_DOTLIST[@]}" <<'PY'
@@ -201,6 +226,7 @@ PY
   printf 'export VIDEO_BACKEND=%q\n' "${VIDEO_BACKEND}"
   printf 'export PER_DEVICE_BATCH_SIZE=%q\n' "${PER_DEVICE_BATCH_SIZE}"
   printf 'export FREEZE_MODULES=%q\n' "${FREEZE_MODULES}"
+  printf 'export FRAMEWORK_OVERRIDES_JSON=%q\n' "${FRAMEWORK_OVERRIDES_JSON}"
   printf 'export DATALOADER_NUM_WORKERS=%q\n' "${DATALOADER_NUM_WORKERS}"
   printf 'export DATALOADER_PIN_MEMORY=%q\n' "${DATALOADER_PIN_MEMORY}"
   printf 'export DATALOADER_PERSISTENT_WORKERS=%q\n' "${DATALOADER_PERSISTENT_WORKERS}"

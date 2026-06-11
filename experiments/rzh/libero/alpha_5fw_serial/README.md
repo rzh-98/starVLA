@@ -25,6 +25,16 @@
 
 - `QwenOFT`、`QwenPI`、`QwenGR00T`、`QwenAdapter`：冻结 `qwen_vl_interface`，训练各自 action/head/adapter 相关参数，`per_device_batch_size=16`。
 - `QwenFast`：不冻结 `qwen_vl_interface`，因为 FAST action tokenizer 本身没有可训练参数，训练信号落在 VLM 的 action token 预测上；为降低显存压力，`per_device_batch_size=2`。
+- `QwenAdapter`：额外覆盖 `framework.action_model.hidden_dim=2560`，匹配当前 `Qwen3-VL-4B` 的 hidden size；同时覆盖 `num_actions_chunk=8` 和 `future_action_window_size=7`，匹配 LIBERO 的 action horizon。
+
+如果后续某个 framework 需要额外配置，可以在对应矩阵项里添加：
+
+```yaml
+overrides:
+  some.config.key: value
+```
+
+这些覆盖项会同时进入真实训练命令和输出目录中的 `config.full.yaml`。
 
 ## 资产准备
 

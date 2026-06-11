@@ -18,3 +18,7 @@
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
   per_device_batch_size: 16
   freeze_modules: qwen_vl_interface
+  overrides:
+    framework.action_model.hidden_dim: 2560
+    framework.action_model.num_actions_chunk: 8
+    framework.action_model.future_action_window_size: 7

@@ -16,11 +16,14 @@ from omegaconf import OmegaConf
 
 matrix = OmegaConf.load(sys.argv[1])
 for item in matrix:
+    overrides = item.get("overrides", {})
+    overrides = OmegaConf.to_container(overrides, resolve=True) if overrides else {}
     row = {
         "framework": item.framework,
         "base_vlm": item.base_vlm,
         "per_device_batch_size": item.get("per_device_batch_size", 16),
         "freeze_modules": item.get("freeze_modules", "qwen_vl_interface"),
+        "overrides": overrides,
     }
     print(json.dumps(row, ensure_ascii=False))
 PY
@@ -40,7 +43,12 @@ import sys
 
 row = json.loads(sys.argv[1])
 value = row.get(sys.argv[2], "")
-print("" if value is None else value)
+if value is None:
+    print("")
+elif isinstance(value, (dict, list)):
+    print(json.dumps(value, ensure_ascii=False))
+else:
+    print(value)
 PY
 }
 
@@ -49,8 +57,10 @@ for row in "${FRAMEWORK_ROWS[@]}"; do
   base_vlm="$(json_field "${row}" base_vlm)"
   per_device_batch_size="$(json_field "${row}" per_device_batch_size)"
   freeze_modules="$(json_field "${row}" freeze_modules)"
+  framework_overrides_json="$(json_field "${row}" overrides)"
 
   PER_DEVICE_BATCH_SIZE="${per_device_batch_size}" \
   FREEZE_MODULES="${freeze_modules}" \
+  FRAMEWORK_OVERRIDES_JSON="${framework_overrides_json}" \
     "${SCRIPT_DIR}/run_one.sh" "${framework}" "${base_vlm}"
 done
