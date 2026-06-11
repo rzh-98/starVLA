@@ -65,6 +65,28 @@ overrides:
 ./playground/Checkpoints/starvla_alpha_libero_high_vram
 ```
 
+当前 `doing` run：
+
+```text
+screen: starvla_qwenfast_fullft_bs8
+run_id: alpha_libero_QwenFast_fullft_bs8_b17ac05_seed42
+SwanLab: https://swanlab.cn/@antidote/starVLA/runs/0ru3o71p
+output_dir: ./playground/Checkpoints/starvla_alpha_libero_high_vram/alpha_libero_QwenFast_fullft_bs8_b17ac05_seed42
+```
+
+本 run 为了贴近 96G 显存上限，使用：
+
+```text
+framework=QwenFast
+freeze_modules=""
+per_device_batch_size=8
+max_train_steps=80000
+save_interval=999999
+eval_interval=999999
+```
+
+`eval_interval` 暂时拉大到超过总步数，是因为 `QwenFast full fine-tune bs8` 训练阶段已经占用约 `95.3G / 97.9G` 显存；如果训练中途执行生成式 eval，可能额外申请 KV cache 导致 OOM。正式评估建议在训练完成或阶段性停止后，用单独 eval 脚本和更小 batch 运行。
+
 ## 资产准备
 
 这一步是计划的一部分，不是可选项。训练前请先把 `ASSET_ROOT` 指向一块可写的大容量磁盘，然后执行：
