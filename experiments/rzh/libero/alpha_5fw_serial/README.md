@@ -28,6 +28,14 @@ ASSET_ROOT=/path/to/big_disk/starvla_assets \
 ./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
 ```
 
+如果当前机器无法直连 `huggingface.co`，可以临时指定镜像端点：
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com \
+ASSET_ROOT=/path/to/big_disk/starvla_assets \
+./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
+```
+
 默认会准备这些资源：
 
 - `Qwen/Qwen3-VL-4B-Instruct`
@@ -53,6 +61,27 @@ INCLUDE_VLM_DATA=1
 ```
 
 这样会顺手下载 `StarVLA/LLaVA-OneVision-COCO`。
+
+## 本机资产记录
+
+当前机器的基础资产放在：
+
+```text
+/root/autodl-tmp/starvla_assets
+```
+
+本次已完成下载：
+
+- `Qwen/Qwen3-VL-4B-Instruct`
+- `StarVLA/Qwen3-VL-4B-Instruct-Action`
+- 四个 `IPEC-COMMUNITY` LIBERO 数据子集
+
+落盘后总占用约 `19G`。仓库内已创建软链接：
+
+```text
+/root/Code/starVLA/playground/Pretrained_models -> /root/autodl-tmp/starvla_assets/models
+/root/Code/starVLA/playground/Datasets -> /root/autodl-tmp/starvla_assets/datasets
+```
 
 ## 冒烟测试
 

@@ -37,6 +37,7 @@ link_dir() {
 
 "${PYTHON_BIN}" - "${REPO_ROOT}" "${MODEL_ROOT}" "${DATA_ROOT}" "${INCLUDE_VLM_DATA}" "${DRY_RUN}" <<'PY'
 from pathlib import Path
+import os
 import shutil
 import sys
 
@@ -86,6 +87,7 @@ if include_vlm_data:
 print(f"资产根目录：{data_root.parent}")
 print(f"模型目录：{model_root}")
 print(f"数据目录：{data_root}")
+print(f"下载端点：{os.environ.get('HF_ENDPOINT', 'https://huggingface.co')}")
 print(f"是否包含可选 VLM 数据：{'是' if include_vlm_data else '否'}")
 
 if dry_run:
