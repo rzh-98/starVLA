@@ -152,6 +152,24 @@ cd /root/Code/starVLA
 ./experiments/rzh/libero/alpha_5fw_serial/run_all_serial.sh
 ```
 
+## 存储注意
+
+当前机器磁盘总量约 `227G`。1-step smoke 已显示单个 final model 大致占用：
+
+- `QwenOFT`：约 `9G`
+- `QwenFast`：约 `9G`
+- `QwenPI`：约 `16G`
+- `QwenGR00T`：约 `9G`
+- `QwenAdapter`：约 `12G`
+
+如果按默认 `max_train_steps=80000`、`save_interval=10000` 跑完五个 framework，周期 checkpoint 加 final model 会明显超过当前磁盘容量。当前机器上建议正式训练先用：
+
+```bash
+SAVE_INTERVAL=999999 ./experiments/rzh/libero/alpha_5fw_serial/run_all_serial.sh
+```
+
+这样每个 framework 只保留训练结束的 `final_model`，代价是中途断点恢复能力较弱。后续如果扩到 600G 以上，再恢复 `SAVE_INTERVAL=10000`。
+
 ## 常用覆盖项
 
 - `CUDA_VISIBLE_DEVICES=0,1`：限制每个串行任务可见的 GPU。
