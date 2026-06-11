@@ -1,10 +1,20 @@
 - framework: QwenOFT
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
+  per_device_batch_size: 16
+  freeze_modules: qwen_vl_interface
 - framework: QwenFast
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
+  per_device_batch_size: 2
+  freeze_modules: ""
 - framework: QwenPI
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct
+  per_device_batch_size: 16
+  freeze_modules: qwen_vl_interface
 - framework: QwenGR00T
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct
+  per_device_batch_size: 16
+  freeze_modules: qwen_vl_interface
 - framework: QwenAdapter
   base_vlm: playground/Pretrained_models/Qwen3-VL-4B-Instruct-Action
+  per_device_batch_size: 16
+  freeze_modules: qwen_vl_interface

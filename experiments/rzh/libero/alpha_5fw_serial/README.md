@@ -19,6 +19,13 @@
 - `run_all_serial.sh`：按 matrix 顺序串行启动全部框架。
 - `requirements-extra.txt`：实验额外依赖版本。
 
+## 矩阵覆盖项
+
+`framework_matrix.yaml` 不只记录 framework 与 base VLM，也记录每个 framework 的关键训练覆盖项。当前策略是：
+
+- `QwenOFT`、`QwenPI`、`QwenGR00T`、`QwenAdapter`：冻结 `qwen_vl_interface`，训练各自 action/head/adapter 相关参数，`per_device_batch_size=16`。
+- `QwenFast`：不冻结 `qwen_vl_interface`，因为 FAST action tokenizer 本身没有可训练参数，训练信号落在 VLM 的 action token 预测上；为降低显存压力，`per_device_batch_size=2`。
+
 ## 资产准备
 
 这一步是计划的一部分，不是可选项。训练前请先把 `ASSET_ROOT` 指向一块可写的大容量磁盘，然后执行：
