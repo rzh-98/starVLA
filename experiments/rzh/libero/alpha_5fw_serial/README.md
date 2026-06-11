@@ -103,7 +103,7 @@ torch==2.11.0+cu128
 torchvision==0.26.0+cu128
 ```
 
-新版本 `torchvision` 不再提供 `torchvision.io.VideoReader`，因此本实验默认使用 `decord` 读取 LIBERO 视频。
+新版本 `torchvision` 不再提供 `torchvision.io.VideoReader`，而这批 LIBERO mp4 需要 PyAV 软解 AV1，因此本实验默认使用 `pyav` 读取视频。
 
 ## 冒烟测试
 
@@ -126,7 +126,7 @@ cd /root/Code/starVLA
 
 - `CUDA_VISIBLE_DEVICES=0,1`：限制每个串行任务可见的 GPU。
 - `NUM_PROCESSES=1`：手动覆盖 PyTorch 检测到的 CUDA 设备数量。
-- `VIDEO_BACKEND=decord`：视频读取后端，当前实验默认使用 `decord`，避免新版本 `torchvision` 缺少 `VideoReader`。
+- `VIDEO_BACKEND=pyav`：视频读取后端，当前实验默认使用 `pyav`，避免新版本 `torchvision` 缺少 `VideoReader`，也避免 `decord` 无法读取这批 AV1 mp4。
 - `RESUME=1`：允许复用已有输出目录，并传入 `--trainer.is_resume true`。
 - `OVERWRITE=1`：重新启动前删除已有输出目录。
 - `RUN_ROOT_DIR=/path/to/checkpoints`：修改输出根目录。

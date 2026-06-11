@@ -21,6 +21,8 @@ import numpy as np
 import torch  # noqa: F401 # isort: skip
 import torchvision  # noqa: F401 # isort: skip
 
+av.logging.set_level(av.logging.PANIC)
+
 # Import decord with graceful fallback
 try:
     import decord  # noqa: F401
