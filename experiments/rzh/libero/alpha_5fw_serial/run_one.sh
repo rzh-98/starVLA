@@ -38,11 +38,13 @@ OUTPUT_DIR="${RUN_ROOT_DIR%/}/${RUN_ID}"
 
 if [[ ! -e "${BASE_VLM}" ]]; then
   echo "base VLM 路径不存在：${BASE_VLM}" >&2
+  echo "请先运行 ./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh" >&2
   exit 1
 fi
 
 if [[ ! -d "${LIBERO_DATA_ROOT}" ]]; then
   echo "LIBERO 数据根目录不存在：${LIBERO_DATA_ROOT}" >&2
+  echo "请先运行 ./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh" >&2
   exit 1
 fi
 

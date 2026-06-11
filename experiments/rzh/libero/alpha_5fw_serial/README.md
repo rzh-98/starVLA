@@ -14,15 +14,52 @@
 
 - `framework_matrix.yaml`：框架和 base VLM 的对应关系。
 - `config_base.yaml`：LIBERO baseline 的共享配置。
+- `prepare_assets.sh`：下载并整理模型、LIBERO 数据，最后软链接回仓库。
 - `run_one.sh`：启动单个框架。
 - `run_all_serial.sh`：按 matrix 顺序串行启动全部框架。
 - `requirements-extra.txt`：实验额外依赖版本。
+
+## 资产准备
+
+这一步是计划的一部分，不是可选项。训练前请先把 `ASSET_ROOT` 指向一块可写的大容量磁盘，然后执行：
+
+```bash
+ASSET_ROOT=/path/to/big_disk/starvla_assets \
+./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
+```
+
+默认会准备这些资源：
+
+- `Qwen/Qwen3-VL-4B-Instruct`
+- `StarVLA/Qwen3-VL-4B-Instruct-Action`
+- `IPEC-COMMUNITY/libero_spatial_no_noops_1.0.0_lerobot`
+- `IPEC-COMMUNITY/libero_object_no_noops_1.0.0_lerobot`
+- `IPEC-COMMUNITY/libero_goal_no_noops_1.0.0_lerobot`
+- `IPEC-COMMUNITY/libero_10_no_noops_1.0.0_lerobot`
+
+脚本会把模型链接到 `playground/Pretrained_models`，把数据链接到 `playground/Datasets`，这样训练脚本可以继续沿用仓库里的标准相对路径。
+
+如果你只想先确认下载计划，可以用：
+
+```bash
+DRY_RUN=1 ASSET_ROOT=/path/to/big_disk/starvla_assets \
+./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
+```
+
+如果你后面要切到 `train_starvla_cotrain.py`，可以额外加：
+
+```bash
+INCLUDE_VLM_DATA=1
+```
+
+这样会顺手下载 `StarVLA/LLaVA-OneVision-COCO`。
 
 ## 冒烟测试
 
 ```bash
 conda activate starVLA
 cd /root/Code/starVLA
+ASSET_ROOT=/path/to/big_disk/starvla_assets ./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
 MAX_TRAIN_STEPS=1 SAVE_INTERVAL=1 EVAL_INTERVAL=1 ./experiments/rzh/libero/alpha_5fw_serial/run_all_serial.sh
 ```
 
