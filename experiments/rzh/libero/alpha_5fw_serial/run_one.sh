@@ -13,12 +13,17 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../../.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
+if [[ -z "${OMP_NUM_THREADS:-}" || "${OMP_NUM_THREADS}" == "0" ]]; then
+  export OMP_NUM_THREADS=1
+fi
+
 cd "${REPO_ROOT}"
 
 SEED="${SEED:-42}"
 CONFIG_YAML="${CONFIG_YAML:-${SCRIPT_DIR}/config_base.yaml}"
 LIBERO_DATA_ROOT="${LIBERO_DATA_ROOT:-playground/Datasets/LEROBOT_LIBERO_DATA}"
 DATA_MIX="${DATA_MIX:-libero_all}"
+VIDEO_BACKEND="${VIDEO_BACKEND:-decord}"
 RUN_ROOT_DIR="${RUN_ROOT_DIR:-./playground/Checkpoints/starvla_alpha_libero_5fw}"
 WANDB_PROJECT="${WANDB_PROJECT:-starVLA}"
 MAX_TRAIN_STEPS="${MAX_TRAIN_STEPS:-80000}"
@@ -107,6 +112,7 @@ CONFIG_DOTLIST=(
   "datasets.vla_data.data_root_dir=${LIBERO_DATA_ROOT}"
   "datasets.vla_data.data_mix=${DATA_MIX}"
   "datasets.vla_data.per_device_batch_size=16"
+  "datasets.vla_data.video_backend=${VIDEO_BACKEND}"
   "trainer.max_train_steps=${MAX_TRAIN_STEPS}"
   "trainer.save_interval=${SAVE_INTERVAL}"
   "trainer.logging_frequency=${LOGGING_FREQUENCY}"
@@ -136,6 +142,7 @@ COMMAND=(
   --datasets.vla_data.data_root_dir "${LIBERO_DATA_ROOT}"
   --datasets.vla_data.data_mix "${DATA_MIX}"
   --datasets.vla_data.per_device_batch_size 16
+  --datasets.vla_data.video_backend "${VIDEO_BACKEND}"
   --trainer.max_train_steps "${MAX_TRAIN_STEPS}"
   --trainer.save_interval "${SAVE_INTERVAL}"
   --trainer.logging_frequency "${LOGGING_FREQUENCY}"
@@ -170,8 +177,10 @@ PY
   printf 'cd %q\n' "${REPO_ROOT}"
   printf 'export STARVLA_USE_SWANLAB=%q\n' "${STARVLA_USE_SWANLAB}"
   printf 'export SWANLAB_MODE=%q\n' "${SWANLAB_MODE}"
+  printf 'export OMP_NUM_THREADS=%q\n' "${OMP_NUM_THREADS}"
   printf 'export CUDA_VISIBLE_DEVICES=%q\n' "${CUDA_VISIBLE_DEVICES:-}"
   printf 'export NUM_PROCESSES=%q\n' "${NUM_PROCESSES}"
+  printf 'export VIDEO_BACKEND=%q\n' "${VIDEO_BACKEND}"
   printf '%q ' "${COMMAND[@]}"
   echo
 } > "${OUTPUT_DIR}/launch_command.sh"
