@@ -105,6 +105,17 @@ torchvision==0.26.0+cu128
 
 新版本 `torchvision` 不再提供 `torchvision.io.VideoReader`，而这批 LIBERO mp4 需要 PyAV 软解 AV1，因此本实验默认使用 `pyav` 读取视频。
 
+PyAV 解码 AV1 视频时，多进程 DataLoader 容易放大内存和解码器资源占用。当前实验默认使用保守设置：
+
+```text
+num_workers=0
+pin_memory=false
+persistent_workers=false
+prefetch_factor=1
+```
+
+冒烟测试和首轮正式训练先以稳定跑通为主。后续如果 GPU 吞吐偏低，可以逐步试 `DATALOADER_NUM_WORKERS=1` 或 `DATALOADER_NUM_WORKERS=2`，每次只改一个变量并观察 `train.log`、显存、内存和 SwanLab 曲线。
+
 ## 冒烟测试
 
 ```bash
@@ -127,6 +138,10 @@ cd /root/Code/starVLA
 - `CUDA_VISIBLE_DEVICES=0,1`：限制每个串行任务可见的 GPU。
 - `NUM_PROCESSES=1`：手动覆盖 PyTorch 检测到的 CUDA 设备数量。
 - `VIDEO_BACKEND=pyav`：视频读取后端，当前实验默认使用 `pyav`，避免新版本 `torchvision` 缺少 `VideoReader`，也避免 `decord` 无法读取这批 AV1 mp4。
+- `DATALOADER_NUM_WORKERS=0`：DataLoader worker 数量，当前默认 `0`，优先保证 PyAV 读取稳定。
+- `DATALOADER_PIN_MEMORY=false`：是否固定页内存，当前默认关闭。
+- `DATALOADER_PERSISTENT_WORKERS=false`：是否保留 DataLoader worker，`num_workers=0` 时不会启用。
+- `DATALOADER_PREFETCH_FACTOR=1`：每个 worker 预取 batch 数，只有 `num_workers>0` 时传给 PyTorch。
 - `RESUME=1`：允许复用已有输出目录，并传入 `--trainer.is_resume true`。
 - `OVERWRITE=1`：重新启动前删除已有输出目录。
 - `RUN_ROOT_DIR=/path/to/checkpoints`：修改输出根目录。

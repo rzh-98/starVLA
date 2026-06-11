@@ -10,6 +10,15 @@ from starVLA.dataloader.vlm_datasets import make_vlm_dataloader
 
 logger = get_logger(__name__)
 
+def _cfg_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return bool(value)
+
 def save_dataset_statistics(dataset_statistics, run_dir):
     """Saves a `dataset_statistics.json` file."""
     out_path = run_dir / "dataset_statistics.json"
@@ -45,16 +54,22 @@ def build_dataloader(cfg, dataset_py="lerobot_datasets_oxe"): # TODO now here on
             balance_trajectory_weights=vla_dataset_cfg.get("balance_trajectory_weights", False),
         )
         
-        vla_train_dataloader = DataLoader(
-            vla_dataset,
-            batch_size=cfg.datasets.vla_data.per_device_batch_size,
-            collate_fn=collate_fn,
-            num_workers=16,
-            pin_memory=True,
-            persistent_workers=True,
-            prefetch_factor=4,
+        num_workers = int(vla_dataset_cfg.get("num_workers", 16))
+        dataloader_kwargs = {
+            "batch_size": cfg.datasets.vla_data.per_device_batch_size,
+            "collate_fn": collate_fn,
+            "num_workers": num_workers,
+            "pin_memory": _cfg_bool(vla_dataset_cfg.get("pin_memory", True), True),
             # shuffle=True
-        )        
+        }
+        if num_workers > 0:
+            dataloader_kwargs["persistent_workers"] = _cfg_bool(
+                vla_dataset_cfg.get("persistent_workers", True),
+                True,
+            )
+            dataloader_kwargs["prefetch_factor"] = int(vla_dataset_cfg.get("prefetch_factor", 4))
+
+        vla_train_dataloader = DataLoader(vla_dataset, **dataloader_kwargs)
         if dist.get_rank() == 0: 
             
             output_dir = Path(cfg.output_dir)
