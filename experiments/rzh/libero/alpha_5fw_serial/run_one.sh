@@ -145,7 +145,7 @@ if [[ "${RESUME}" == "1" ]]; then
   CONFIG_DOTLIST+=("trainer.is_resume=true")
 fi
 
-mapfile -t OVERRIDE_ROWS < <("${PYTHON_BIN}" - "${FRAMEWORK_OVERRIDES_JSON}" <<'PY'
+OVERRIDE_ROWS_TEXT="$("${PYTHON_BIN}" - "${FRAMEWORK_OVERRIDES_JSON}" <<'PY'
 import json
 import sys
 
@@ -159,7 +159,11 @@ for key, value in overrides.items():
         value = str(value)
     print(f"{key}\t{value}")
 PY
-)
+)"
+OVERRIDE_ROWS=()
+if [[ -n "${OVERRIDE_ROWS_TEXT}" ]]; then
+  mapfile -t OVERRIDE_ROWS <<< "${OVERRIDE_ROWS_TEXT}"
+fi
 
 EXTRA_OVERRIDE_ARGS=()
 for row in "${OVERRIDE_ROWS[@]}"; do
