@@ -36,6 +36,35 @@ overrides:
 
 这些覆盖项会同时进入真实训练命令和输出目录中的 `config.full.yaml`。
 
+## Baseline 复现 TODO
+
+状态约定：
+
+- `done`：已经完成并可复查。
+- `doing`：当前正在跑或正在验证。
+- `todo`：还未开始。
+- `stopped`：主动停止，不作为当前主线结果。
+
+当前主线从“轻量 frozen 对比”调整为“高显存 full fine-tune baseline 复现”。原因是 `QwenOFT`、`QwenPI`、`QwenGR00T`、`QwenAdapter` 在五框架矩阵里默认冻结 `qwen_vl_interface`，显存主要花在前向和 action/head 小模块上；96G 显卡更适合解冻 Qwen-VL 主干的 full fine-tune。
+
+- `done`：Fork 工作流已整理，`origin` 指向个人 fork，`upstream` 指向官方仓库。
+- `done`：SwanLab bridge 已接入，项目名固定为 `starVLA`。
+- `done`：模型和数据已迁移到 `/root/data/Pretrained_models` 与 `/root/data/Datasets`，仓库内通过软链接访问。
+- `done`：五个 framework 的 1-step smoke 已跑通，覆盖 `QwenOFT`、`QwenFast`、`QwenPI`、`QwenGR00T`、`QwenAdapter`。
+- `stopped`：`alpha_libero_QwenOFT_e18341e_seed42` 已主动停止。该 run 是 `QwenOFT + freeze qwen_vl_interface`，显存占用低，不符合当前“优先利用 96G 显存跑大任务”的目标。
+- `done`：已探测 `QwenPI full fine-tune`，即 `framework=QwenPI`、`freeze_modules=""`、`base_vlm=Qwen3-VL-4B-Instruct`。`per_device_batch_size=8/6/4` 都在第 1 步 optimizer state 初始化阶段 OOM；其中 batch 6/4 峰值约 `92.8G`，还需要额外分配约 `16.5G`。结论：当前单张 96G 卡不适合直接跑 `QwenPI` 全量 AdamW fine-tune，除非改用 CPU offload、8-bit optimizer、冻结部分 Qwen 层或多卡 ZeRO。
+- `doing`：当前高显存正式 baseline 改为 `QwenFast full fine-tune bs8`，即 `framework=QwenFast`、`freeze_modules=""`、`base_vlm=Qwen3-VL-4B-Instruct-Action`、`per_device_batch_size=8`、`data_mix=libero_all`、`seed=42`。probe 已稳定跑过 50 step，显存约 `95.3G / 97.9G`，是当前单卡 96G 上能实际跑起来且最吃显存的配置。
+- `todo`：如果 `QwenFast full fine-tune bs8` 能稳定跑过 100 step，保留正式 run 继续到 `80000` step，仅保存最终模型，避免磁盘被周期 checkpoint 填满。
+- `todo`：在同一 high-vram 输出根目录下补跑 `QwenGR00T full fine-tune`，用于和 `QwenFast full fine-tune` 比较。
+- `todo`：后续重新挑战 `QwenPI full fine-tune` 时，优先尝试 CPU optimizer offload 或 8-bit optimizer，而不是继续单纯降低 batch。
+- `todo`：后续需要官方 cotrain baseline 时，再启用 `train_starvla_cotrain.py` 和 VLM 数据；当前本机只准备了 LIBERO VLA 数据，尚未下载 `StarVLA/LLaVA-OneVision-COCO`。
+
+高显存实验输出根目录固定为：
+
+```text
+./playground/Checkpoints/starvla_alpha_libero_high_vram
+```
+
 ## 资产准备
 
 这一步是计划的一部分，不是可选项。训练前请先把 `ASSET_ROOT` 指向一块可写的大容量磁盘，然后执行：
