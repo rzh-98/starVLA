@@ -36,6 +36,16 @@ ASSET_ROOT=/path/to/big_disk/starvla_assets \
 ./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
 ```
 
+如果希望模型和数据分别落在固定目录，也可以显式指定：
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com \
+ASSET_ROOT=/root/data/starvla_assets \
+MODEL_ROOT=/root/data/Pretrained_models \
+DATA_ROOT=/root/data/Datasets \
+./experiments/rzh/libero/alpha_5fw_serial/prepare_assets.sh
+```
+
 默认会准备这些资源：
 
 - `Qwen/Qwen3-VL-4B-Instruct`
@@ -67,7 +77,8 @@ INCLUDE_VLM_DATA=1
 当前机器的基础资产放在：
 
 ```text
-/root/autodl-tmp/starvla_assets
+/root/data/Pretrained_models
+/root/data/Datasets
 ```
 
 本次已完成下载：
@@ -79,8 +90,8 @@ INCLUDE_VLM_DATA=1
 落盘后总占用约 `19G`。仓库内已创建软链接：
 
 ```text
-/root/Code/starVLA/playground/Pretrained_models -> /root/autodl-tmp/starvla_assets/models
-/root/Code/starVLA/playground/Datasets -> /root/autodl-tmp/starvla_assets/datasets
+/root/Code/starVLA/playground/Pretrained_models -> /root/data/Pretrained_models
+/root/Code/starVLA/playground/Datasets -> /root/data/Datasets
 ```
 
 ## 冒烟测试
