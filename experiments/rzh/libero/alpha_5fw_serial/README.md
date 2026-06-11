@@ -50,6 +50,7 @@ DATA_ROOT=/root/data/Datasets \
 
 - `Qwen/Qwen3-VL-4B-Instruct`
 - `StarVLA/Qwen3-VL-4B-Instruct-Action`
+- `physical-intelligence/fast`，供 `QwenFast` action tokenizer 使用
 - `IPEC-COMMUNITY/libero_spatial_no_noops_1.0.0_lerobot`
 - `IPEC-COMMUNITY/libero_object_no_noops_1.0.0_lerobot`
 - `IPEC-COMMUNITY/libero_goal_no_noops_1.0.0_lerobot`
@@ -85,6 +86,7 @@ INCLUDE_VLM_DATA=1
 
 - `Qwen/Qwen3-VL-4B-Instruct`
 - `StarVLA/Qwen3-VL-4B-Instruct-Action`
+- `physical-intelligence/fast`
 - 四个 `IPEC-COMMUNITY` LIBERO 数据子集
 
 落盘后总占用约 `19G`。仓库内已创建软链接：

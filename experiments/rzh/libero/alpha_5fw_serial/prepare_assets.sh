@@ -55,6 +55,7 @@ libero_root = data_root / "LEROBOT_LIBERO_DATA"
 tasks = [
     ("model", None, "Qwen/Qwen3-VL-4B-Instruct", model_root / "Qwen3-VL-4B-Instruct"),
     ("model", None, "StarVLA/Qwen3-VL-4B-Instruct-Action", model_root / "Qwen3-VL-4B-Instruct-Action"),
+    ("model", None, "physical-intelligence/fast", model_root / "fast"),
     (
         "dataset",
         "dataset",

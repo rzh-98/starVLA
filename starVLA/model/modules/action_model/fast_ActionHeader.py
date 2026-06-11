@@ -71,9 +71,7 @@ class Fast_Action_Tokenizer(nn.Module):
     def __init__(self, fast_tokenizer_name="playground/Pretrained_models/fast"):
         super().__init__()
 
-        self.fast_tokenizer = AutoProcessor.from_pretrained(
-            fast_tokenizer_name, trust_remote_code=True
-        )  # load https://huggingface.co/physical-intelligence/fast
+        self.fast_tokenizer = _load_fast_processor(fast_tokenizer_name)
 
     def encoder_action2fastoken(self, raw_actions):
         # x: (batch_size, chunck, dim)
